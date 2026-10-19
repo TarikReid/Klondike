@@ -68,8 +68,12 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .idx{position:absolute;left:6%;right:6%;top:3%;display:flex;justify-content:space-between;align-items:center;line-height:1}
 .idx b{font:700 calc(var(--cw)*.40)/1 var(--f-index);letter-spacing:-.06em}
 .idx i{font-style:normal;font-size:calc(var(--cw)*.32)}
-.pip{position:absolute;left:0;right:0;bottom:8%;text-align:center;line-height:1;font-size:calc(var(--cw)*.58)}
-.pip.court{font:italic 500 calc(var(--cw)*.56)/1 var(--f-rank)}
+.idx .is{width:calc(var(--cw)*.24);height:calc(var(--cw)*.24);fill:currentColor;flex:none}
+.pp{position:absolute;width:calc(var(--cw)*.19);height:calc(var(--cw)*.19);fill:currentColor;transform:translate(-50%,-50%)}
+.pp.inv{transform:translate(-50%,-50%) rotate(180deg)}
+.pp.ace{width:calc(var(--cw)*.46);height:calc(var(--cw)*.46)}
+.court{position:absolute;left:11%;right:11%;top:31%;bottom:4%}
+.court svg{display:block;width:100%;height:100%}
 .card.press>*{transform:scale(.95);transition:transform .08s}
 .card.hint .face,.card.hint .back{box-shadow:0 0 0 3px var(--accent),0 0 16px var(--accent)}
 .slot.hint{border-color:var(--accent);color:var(--accent);box-shadow:0 0 12px var(--accent)}
@@ -125,6 +129,141 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   const NAMES = ['spades', 'hearts', 'diamonds', 'clubs'];
   const isRed = s => s === 1 || s === 2;
   const KEY = 'baize-solitaire-v1';
+
+  // ---------- card faces ----------
+  // Pip positions: column 0/1/2 (left, centre, right) and height 0..1 down the card body.
+  const SIX = [[0, 0], [2, 0], [0, .5], [2, .5], [0, 1], [2, 1]];
+  const NINE = [[0, 0], [0, 1 / 3], [0, 2 / 3], [0, 1], [2, 0], [2, 1 / 3], [2, 2 / 3], [2, 1]];
+  const PIPS = {
+    1: [[1, .5]], 2: [[1, 0], [1, 1]], 3: [[1, 0], [1, .5], [1, 1]],
+    4: [[0, 0], [2, 0], [0, 1], [2, 1]], 5: [[0, 0], [2, 0], [1, .5], [0, 1], [2, 1]],
+    6: SIX, 7: [...SIX, [1, .25]], 8: [...SIX, [1, .25], [1, .75]],
+    9: [...NINE, [1, .5]], 10: [...NINE, [1, 1 / 6], [1, 5 / 6]],
+  };
+  // Suit shapes in a 100x100 box, drawn as paths so every device shows them the same.
+  function suitShape(s) {
+    if (s === 0) return '<path d="M50 4C40 22 6 40 6 62c0 14 11 23 23 23 9 0 15-5 18-11-1 10-5 18-13 22h32c-8-4-12-12-13-22 3 6 9 11 18 11 12 0 23-9 23-23C94 40 60 22 50 4Z"/>';
+    if (s === 1) return '<path d="M50 92C20 68 4 50 4 31 4 16 15 6 28 6c10 0 18 6 22 15 4-9 12-15 22-15 13 0 24 10 24 25 0 19-16 37-46 61Z"/>';
+    if (s === 2) return '<path d="M50 2 88 50 50 98 12 50Z"/>';
+    return '<circle cx="50" cy="27" r="21"/><circle cx="27" cy="59" r="21"/><circle cx="73" cy="59" r="21"/>' +
+           '<circle cx="50" cy="52" r="12"/><path d="M46 58c-1 20-5 31-13 38h34c-8-7-12-18-13-38Z"/>';
+  }
+  const suitSVG = (s, cls, style = '') =>
+    `<svg class="${cls}" viewBox="0 0 100 100" style="${style}" aria-hidden="true">${suitShape(s)}</svg>`;
+  function pipsHTML(r, s) {
+    return PIPS[r].map(([c, y]) => {
+      const cls = 'pp' + (r === 1 ? ' ace' : y > .5 ? ' inv' : '');
+      return suitSVG(s, cls, `left:${[28, 50, 72][c]}%;top:${(41 + y * 49).toFixed(1)}%`);
+    }).join('');
+  }
+
+  // Court cards: an original single portrait in a frame.
+  function courtSVG(r, s) {
+    const RED = '#b3302a', BLUE = '#2d4f8e', GOLD = '#ddb03a', GOLD_D = '#a87d1c', INK = '#1c2420', PALE = '#fbf8f0';
+    const SKIN = '#f3d4b0', SKIN_D = '#dfae86', LIP = '#b4463e', EYE = '#3a2a1e', GREEN = '#3d7a45';
+    const [c1, c2] = s % 2 ? [RED, BLUE] : [BLUE, RED];
+    const suitCol = isRed(s) ? RED : INK;
+    const uid = 'c' + r + '_' + s;
+    const ln = (w = .6) => `stroke="${INK}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"`;
+
+    // Shared pieces
+    const face =
+      `<ellipse cx="23.6" cy="30" rx="1.5" ry="2.5" fill="${SKIN_D}" ${ln(.5)}/>` +
+      `<ellipse cx="40.4" cy="30" rx="1.5" ry="2.5" fill="${SKIN_D}" ${ln(.5)}/>` +
+      `<path d="M24 29Q24 18 32 18Q40 18 40 29Q40 38 36.5 41Q34 43 32 43Q30 43 27.5 41Q24 38 24 29Z" fill="url(#${uid}f)" ${ln()}/>` +
+      `<circle cx="27.3" cy="33.4" r="1.7" fill="#e8908a" opacity=".35"/><circle cx="36.7" cy="33.4" r="1.7" fill="#e8908a" opacity=".35"/>` +
+      `<path d="M26.6 28.7Q28.5 27.2 30.4 28.7Q28.5 29.9 26.6 28.7Z" fill="#fff" ${ln(.4)}/>` +
+      `<path d="M33.6 28.7Q35.5 27.2 37.4 28.7Q35.5 29.9 33.6 28.7Z" fill="#fff" ${ln(.4)}/>` +
+      `<circle cx="28.5" cy="28.6" r=".8" fill="${EYE}"/><circle cx="35.5" cy="28.6" r=".8" fill="${EYE}"/>` +
+      `<path d="M32 29Q31.1 32.4 31.7 33.4Q32.6 33.8 33.3 33.1" fill="none" stroke="#b07a5a" stroke-width=".55" stroke-linecap="round"/>` +
+      `<path d="M29.7 36.3Q32 37.5 34.3 36.3Q32 38.6 29.7 36.3Z" fill="${LIP}"/>`;
+    const brows = col =>
+      `<path d="M26.3 26.4Q28.5 25 30.7 26.1M33.3 26.1Q35.5 25 37.7 26.4" fill="none" stroke="${col}" stroke-width=".8" stroke-linecap="round"/>`;
+    const neck = `<path d="M28.5 39h7v8h-7Z" fill="${SKIN_D}" ${ln(.5)}/>`;
+    const robe =
+      `<path d="M2 76 4 61Q6 50 18 46.5L27 44.5 32 49l5-4.5 9 2Q58 50 60 61l2 15Z" fill="${c1}" ${ln()}/>` +
+      `<path d="M2 76 4 61Q6 50 18 46.5L27 44.5 32 49l5-4.5 9 2Q58 50 60 61l2 15Z" fill="url(#${uid}r)"/>` +
+      `<path d="M12 54q2 11 0 22M52 54q-2 11 0 22" fill="none" stroke="${INK}" stroke-opacity=".25" stroke-width=".7"/>` +
+      [[11, 60], [16, 69], [9, 71], [48, 60], [53, 69], [55, 61], [44, 72], [20, 58]]
+        .map(([x, y]) => `<path d="M${x} ${y - 1.4}l1 1.4-1 1.4-1-1.4Z" fill="${GOLD}"/>`).join('');
+
+    let back = '', front = '', top = '', prop = '', hairCol;
+
+    if (r === 13) { // King
+      hairCol = '#9c968c';
+      back = `<path d="M23.4 25Q21.5 34 24 41l1.5-11ZM40.6 25Q42.5 34 40 41l-1.5-11Z" fill="#d9d4ca" ${ln(.5)}/>`;
+      front =
+        `<path d="M24.6 32.5Q24.6 44.5 32 48Q39.4 44.5 39.4 32.5Q38.4 38 35.2 38.4Q33.6 37.1 32 37.3Q30.4 37.1 28.8 38.4Q25.6 38 24.6 32.5Z" fill="#dcd7cd" ${ln(.5)}/>` +
+        `<path d="M27 41q1 3 3 4.5M37 41q-1 3-3 4.5M32 40v6" fill="none" stroke="${hairCol}" stroke-width=".45"/>` +
+        `<path d="M28.4 35.7Q30.4 34.2 32 35.3Q33.6 34.2 35.6 35.7Q33.8 36.9 32 36.2Q30.2 36.9 28.4 35.7Z" fill="#c4bdb1" ${ln(.4)}/>`;
+      top =
+        `<path d="M24.5 17.5Q32 5 39.5 17.5Z" fill="${RED}" ${ln(.5)}/>` +
+        `<path d="M22.5 18 21 7.5l5 5 3-8.5 3 6.5 3-6.5 3 8.5 5-5-1.5 10.5Z" fill="url(#${uid}g)" ${ln()}/>` +
+        `<path d="M22 17.2h20v4.4H22Z" fill="url(#${uid}g)" ${ln()}/>` +
+        `<circle cx="32" cy="19.4" r="1.3" fill="${RED}" ${ln(.4)}/><circle cx="26.5" cy="19.4" r="1" fill="${BLUE}" ${ln(.4)}/><circle cx="37.5" cy="19.4" r="1" fill="${BLUE}" ${ln(.4)}/>` +
+        `<circle cx="21" cy="7.5" r="1" fill="${PALE}" ${ln(.4)}/><circle cx="29" cy="4" r="1" fill="${PALE}" ${ln(.4)}/><circle cx="35" cy="4" r="1" fill="${PALE}" ${ln(.4)}/><circle cx="43" cy="7.5" r="1" fill="${PALE}" ${ln(.4)}/>`;
+      prop =
+        `<path d="M15 47q9-4 12-2.5l5 4.5 5-4.5q3-1.5 12 2.5-3 6-9 5.5l-8 4-8-4q-6 .5-9-5.5Z" fill="${PALE}" ${ln()}/>` +
+        [[19, 49], [24, 51.5], [40, 51.5], [45, 49], [32, 54]].map(([x, y]) => `<path d="M${x} ${y}v1.6" stroke="${INK}" stroke-width=".9" stroke-linecap="round"/>`).join('') +
+        `<path d="M52.5 76 55.5 24" stroke="${GOLD_D}" stroke-width="2.4" stroke-linecap="round"/><path d="M52.5 76 55.5 24" stroke="${GOLD}" stroke-width="1.3" stroke-linecap="round"/>` +
+        `<circle cx="55.7" cy="21.5" r="2.6" fill="url(#${uid}g)" ${ln(.5)}/><path d="M55.7 15.6v3.4M54.2 17.2h3" stroke="${GOLD_D}" stroke-width="1"/>`;
+    } else if (r === 12) { // Queen
+      hairCol = '#7a4a1e';
+      back = `<path d="M22.5 30Q20 16 32 15Q44 16 41.5 30Q43 43 47 53l-7.5-2Q39.5 41 39 33H25Q24.5 41 24.5 51L17 53Q21 43 22.5 30Z" fill="#b8782f" ${ln()}/>`;
+      front =
+        `<path d="M24.2 28.5Q25 18.5 32 18.5Q39 18.5 39.8 28.5Q37 21.5 32 22Q27 21.5 24.2 28.5Z" fill="#b8782f" ${ln(.5)}/>` +
+        `<path d="M27 21.2q-2 4-2.5 7.5M37 21.2q2 4 2.5 7.5" fill="none" stroke="#8a5520" stroke-width=".5"/>` +
+        `<circle cx="23.6" cy="33.6" r="1" fill="${PALE}" ${ln(.4)}/><circle cx="40.4" cy="33.6" r="1" fill="${PALE}" ${ln(.4)}/>`;
+      top =
+        `<path d="M25 19.5Q32 12 39 19.5l-1 1.3Q32 15.5 26 20.8Z" fill="url(#${uid}g)" ${ln(.5)}/>` +
+        `<path d="M27.8 17.5l.9-5 1.7 4.2ZM31 15.6l1-6.2 1 6.2ZM33.6 16.7l1.7-4.2.9 5Z" fill="url(#${uid}g)" ${ln(.5)}/>` +
+        `<circle cx="32" cy="9.6" r="1.1" fill="${RED}" ${ln(.4)}/><circle cx="28.7" cy="12.5" r=".7" fill="${PALE}"/><circle cx="35.3" cy="12.5" r=".7" fill="${PALE}"/>`;
+      prop =
+        `<path d="M25 47Q32 56 39 47" fill="none" stroke="${GOLD}" stroke-width="1.2"/>` +
+        `<path d="M26.5 46.8Q32 53.5 37.5 46.8" fill="none" stroke="${PALE}" stroke-width="1.5" stroke-dasharray=".1 1.6" stroke-linecap="round"/>` +
+        `<path d="M32 51.7l1.4 1.8-1.4 1.8-1.4-1.8Z" fill="${c2 === RED ? BLUE : RED}" ${ln(.4)}/>` +
+        `<path d="M14 76q2-7 6-12" fill="none" stroke="${GREEN}" stroke-width="1.2"/>` +
+        `<path d="M16.5 70q-4-1-5 2 3 1 5-2ZM18 67q4-2 5 1-3 1.5-5-1Z" fill="${GREEN}" ${ln(.4)}/>` +
+        `<circle cx="20.5" cy="61.5" r="4.2" fill="${RED}" ${ln(.5)}/>` +
+        `<path d="M18 61q2.5-3 5 0M18.6 63q2-2.4 4 .2M20.5 59.4q1.5 1.6 0 3.4" fill="none" stroke="#7d1c17" stroke-width=".5"/>`;
+    } else { // Jack
+      hairCol = '#4a2c16';
+      back =
+        `<path d="M23.4 28Q22 20 28 18h8q6 2 4.6 10 1 5-1 9l-.6-9H25l-.6 9q-2-4-1-9Z" fill="#6b4024" ${ln(.5)}/>` +
+        [[23.2, 33], [23.8, 37], [40.8, 33], [40.2, 37]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.6" fill="#6b4024" ${ln(.4)}/>`).join('');
+      front = `<path d="M24.5 27Q26 21 32 21.5Q38 21 39.5 27Q36 24 32 24.5Q28 24 24.5 27Z" fill="#6b4024"/>`;
+      top =
+        `<path d="M19.5 22Q20.5 11 33 11Q45 12 46 20.5Q39 18.6 32 19.2Q25.5 19.4 19.5 22Z" fill="${c1}" ${ln()}/>` +
+        `<path d="M19.5 22Q20.5 11 33 11Q45 12 46 20.5Q39 18.6 32 19.2Q25.5 19.4 19.5 22Z" fill="url(#${uid}r)"/>` +
+        `<path d="M21 21.1Q32 16.6 45 19.8" fill="none" stroke="${GOLD}" stroke-width="1.6"/>` +
+        `<circle cx="40" cy="17.4" r="1.2" fill="${GOLD}" ${ln(.4)}/>` +
+        `<path d="M40 16Q47 4 58 9Q50 9.5 41.5 17.5Z" fill="${PALE}" ${ln(.5)}/><path d="M41.5 15.8Q48 8.5 56 9.2" fill="none" stroke="${INK}" stroke-width=".35"/>`;
+      prop =
+        `<path d="M26.5 44.5 32 48.5l5.5-4-1 3.4L32 51.5l-4.5-3.6Z" fill="${PALE}" ${ln(.5)}/>` +
+        [55, 61, 67, 73].map(y => `<circle cx="32" cy="${y}" r="1.1" fill="${GOLD}" ${ln(.35)}/>`).join('') +
+        `<path d="M53.5 76 56 21" stroke="#7a5a3a" stroke-width="1.8" stroke-linecap="round"/>` +
+        `<path d="M56 21.5 51.5 24.5l4.6 3 4.5-3.6Z" fill="#cfd5d8" ${ln(.5)}/><path d="M56 21.5l.3-6.5" stroke="${INK}" stroke-width=".9" stroke-linecap="round"/>`;
+    }
+
+    const vestTop = r === 12 ? 'M24.5 46Q32 55 39.5 46l.5 30H24Z' : 'M27 44.5 32 49l5-4.5 2.5 31.5h-15Z';
+    const mark = (x, y, rot) => `<g transform="translate(${x} ${y}) rotate(${rot} 4 4) scale(.08)" fill="${suitCol}">${suitShape(s)}</g>`;
+
+    return `<svg viewBox="0 0 64 76" preserveAspectRatio="xMidYMid meet" aria-hidden="true"><defs>` +
+      `<radialGradient id="${uid}f" cx=".5" cy=".42" r=".6"><stop offset=".55" stop-color="${SKIN}"/><stop offset="1" stop-color="${SKIN_D}"/></radialGradient>` +
+      `<linearGradient id="${uid}r" x1="0" x2="1"><stop offset="0" stop-color="#000" stop-opacity=".22"/><stop offset=".45" stop-color="#fff" stop-opacity=".12"/><stop offset="1" stop-color="#000" stop-opacity=".28"/></linearGradient>` +
+      `<linearGradient id="${uid}g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f5d779"/><stop offset="1" stop-color="${GOLD_D}"/></linearGradient>` +
+      `<clipPath id="${uid}k"><rect x="1" y="1" width="62" height="74" rx="2"/></clipPath></defs>` +
+      `<rect x=".5" y=".5" width="63" height="75" rx="2.5" fill="#f1e8d6"/>` +
+      `<g clip-path="url(#${uid}k)">` +
+        `<circle cx="32" cy="30" r="24" fill="${c2}" opacity=".08"/>` +
+        back + robe + `<path d="${vestTop}" fill="${c2}" ${ln()}/><path d="${vestTop}" fill="url(#${uid}r)"/>` +
+        `<path d="${vestTop.split('Z')[0]}" fill="none" stroke="${GOLD}" stroke-width="1.1"/>` +
+        neck + prop + face + brows(hairCol) + front + top +
+      `</g>` +
+      `<rect x=".5" y=".5" width="63" height="75" rx="2.5" fill="none" stroke="${INK}" stroke-width=".8"/>` +
+      mark(2.5, 2.5, 0) +
+      `</svg>`;
+  }
   const $ = id => document.getElementById(id);
   const board = $('board');
   const reduce = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -153,8 +292,8 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
     d.className = 'card' + (isRed(s) ? ' red' : '');
     d.dataset.id = id;
     d.setAttribute('aria-label', RK[r] + ' of ' + NAMES[s]);
-    d.innerHTML = `<div class="face"><span class="idx"><b>${RK[r]}</b><i>${SU[s]}</i></span>` +
-      `<span class="pip${r > 10 ? ' court' : ''}">${r > 10 ? RK[r] : SU[s]}</span></div><div class="back"></div>`;
+    d.innerHTML = `<div class="face"><span class="idx"><b>${RK[r]}</b>${suitSVG(s, 'is')}</span>` +
+      (r > 10 ? `<div class="court">${courtSVG(r, s)}</div>` : pipsHTML(r, s)) + `</div><div class="back"></div>`;
     board.appendChild(d); els.push(d);
   }
 

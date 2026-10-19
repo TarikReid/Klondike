@@ -1,4 +1,4 @@
-const CACHE = 'baize-v4';
+const CACHE = 'baize-v6';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)));
