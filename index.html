@@ -23,28 +23,32 @@
   --fg:#e8efe8; --muted:rgba(232,239,232,.66); --accent:#e3b54c; --accent-ink:#2b1f05;
   --f-rank:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
   --f-ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  --f-index:ui-rounded,"SF Pro Rounded",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
   color-scheme:dark;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--felt:#123a2c;--felt-deep:#0c2a1f;--card:#ebe6da;--ink:#1a201d;--red:#a82d27;--back:#6a1d29;--back-2:#802736;--accent:#d9a83f;color-scheme:dark}}
 :root[data-theme="dark"]{--felt:#123a2c;--felt-deep:#0c2a1f;--card:#ebe6da;--ink:#1a201d;--red:#a82d27;--back:#6a1d29;--back-2:#802736;--accent:#d9a83f;color-scheme:dark}
 html{height:100%;box-sizing:border-box;background:var(--felt)}
 *,*::before,*::after{box-sizing:inherit}
-body{height:100%;margin:0;overflow:hidden;color:var(--fg);font-family:var(--f-ui);
+body{height:100%;margin:0;overflow:hidden;color:var(--fg);font-family:var(--f-ui);-webkit-text-size-adjust:100%;
   background:radial-gradient(120% 80% at 50% 30%,var(--felt) 40%,var(--felt-deep) 100%);
   -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
 #app{height:100%;display:flex;flex-direction:column}
 .bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:8px;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
-.stats{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.stats{font-size:16px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
 .stats b{color:var(--fg);font-weight:600}
 .seg{display:flex;background:var(--chip);border:1px solid var(--chip-line);border-radius:999px;padding:3px}
-.seg button{font:600 13px var(--f-ui);color:var(--muted);background:none;border:0;border-radius:999px;height:30px;padding:0 12px;touch-action:manipulation;cursor:pointer}
+.seg button{font:600 14px var(--f-ui);color:var(--muted);background:none;border:0;border-radius:999px;height:36px;padding:0 14px;touch-action:manipulation;cursor:pointer}
 .seg button[aria-pressed="true"]{background:var(--fg);color:var(--felt-deep)}
 #wrap{flex:1;min-height:0;display:flex;position:relative;padding-block:2px 6px;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 #board{position:relative;flex:1;touch-action:none}
-.foot{justify-content:center;gap:10px;padding-block:6px 10px}
-.btn{font:600 15px var(--f-ui);color:var(--fg);background:var(--chip);border:1px solid var(--chip-line);border-radius:999px;height:42px;padding:0 18px;cursor:pointer;touch-action:manipulation;white-space:nowrap}
+.foot{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding-block:6px 10px}
+.btn{font:600 15px var(--f-ui);color:var(--fg);background:var(--chip);border:1px solid var(--chip-line);border-radius:16px;height:44px;padding:0 18px;cursor:pointer;touch-action:manipulation;white-space:nowrap}
+.foot .btn{height:58px;padding:0 6px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:13px;border-radius:16px}
+.foot .btn svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.btn:active:not(:disabled){transform:scale(.96)}
 .btn:disabled{opacity:.38;cursor:default}
 .btn.go{background:var(--accent);color:var(--accent-ink);border-color:transparent}
 .btn.warn{background:var(--fg);color:var(--felt-deep)}
@@ -61,11 +65,16 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .card.up .face{display:block}
 .card.up .back{display:none}
 .back{background:repeating-linear-gradient(45deg,var(--back) 0 3px,var(--back-2) 3px 6px);border:calc(var(--cw)*.07) solid var(--card);box-shadow:0 0 0 .5px rgba(0,0,0,.35),0 1px 2px rgba(0,0,0,.28)}
-.idx{position:absolute;left:7%;right:8%;top:3%;display:flex;justify-content:space-between;align-items:baseline;line-height:1}
-.idx b{font:600 calc(var(--cw)*.33)/1 var(--f-rank);letter-spacing:-.05em}
-.idx i{font-style:normal;font-size:calc(var(--cw)*.27)}
-.pip{position:absolute;left:0;right:0;bottom:9%;text-align:center;line-height:1;font-size:calc(var(--cw)*.62)}
-.pip.court{font:italic 500 calc(var(--cw)*.6)/1 var(--f-rank)}
+.idx{position:absolute;left:6%;right:6%;top:3%;display:flex;justify-content:space-between;align-items:center;line-height:1}
+.idx b{font:700 calc(var(--cw)*.40)/1 var(--f-index);letter-spacing:-.06em}
+.idx i{font-style:normal;font-size:calc(var(--cw)*.32)}
+.pip{position:absolute;left:0;right:0;bottom:8%;text-align:center;line-height:1;font-size:calc(var(--cw)*.58)}
+.pip.court{font:italic 500 calc(var(--cw)*.56)/1 var(--f-rank)}
+.card.press>*{transform:scale(.95);transition:transform .08s}
+.card.hint .face,.card.hint .back{box-shadow:0 0 0 3px var(--accent),0 0 16px var(--accent)}
+.slot.hint{border-color:var(--accent);color:var(--accent);box-shadow:0 0 12px var(--accent)}
+#count{position:absolute;left:0;top:0;z-index:700;pointer-events:none;min-width:22px;height:20px;padding:0 6px;border-radius:999px;
+  background:var(--felt-deep);color:var(--fg);border:1px solid var(--chip-line);font:600 12px/18px var(--f-ui);text-align:center;font-variant-numeric:tabular-nums}
 .card.lift{transition:none}
 .card.lift .face{box-shadow:0 0 0 .5px rgba(0,0,0,.35),0 10px 22px rgba(0,0,0,.4)}
 .card.nope>*{animation:nope .28s ease}
@@ -93,9 +102,10 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
     <div id="toast" hidden></div>
   </div>
   <div class="bar foot">
-    <button class="btn" id="newBtn">New deal</button>
-    <button class="btn" id="undoBtn" disabled>Undo</button>
-    <button class="btn go" id="finishBtn" hidden>Finish</button>
+    <button class="btn" id="newBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="11" height="15" rx="2"/><path d="M9 21h8a2 2 0 0 0 2-2V8"/></svg><span id="newLabel">New deal</span></button>
+    <button class="btn" id="undoBtn" disabled><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg><span>Undo</span></button>
+    <button class="btn" id="hintBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3Z"/></svg><span>Hint</span></button>
+    <button class="btn go" id="finishBtn" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg><span>Finish</span></button>
   </div>
 </div>
 <div id="win" hidden>
@@ -131,6 +141,9 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   mkSlot('stock', '↻'); mkSlot('waste', '');
   for (let i = 0; i < 4; i++) mkSlot('found' + i, 'A');
   for (let i = 0; i < 7; i++) mkSlot('tab' + i, 'K');
+  const countEl = document.createElement('div');
+  countEl.id = 'count'; countEl.setAttribute('aria-label', 'Cards left in the stock');
+  board.appendChild(countEl);
 
   const els = [];
   for (let id = 0; id < 52; id++) {
@@ -167,7 +180,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   const colX = i => L.ox + i * (L.w + L.gap);
   function layout() {
     const W = board.clientWidth, H = board.clientHeight;
-    const gap = Math.round(Math.max(4, Math.min(12, W * 0.013)));
+    const gap = Math.round(Math.max(3, Math.min(10, W * 0.009)));
     let w = Math.floor(Math.min((W - 6 * gap) / 7, 112, H / (1.4 * 3.3)));
     w = Math.max(w, 24);
     const h = Math.round(w * 1.4);
@@ -179,6 +192,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
     place('stock', colX(0), 0); place('waste', colX(1), 0);
     for (let i = 0; i < 4; i++) place('found' + i, colX(3 + i), 0);
     for (let i = 0; i < 7; i++) place('tab' + i, colX(i), L.ty);
+    countEl.style.transform = `translate(${colX(0) + w - 16}px,${h - 12}px)`;
   }
 
   function positions() {
@@ -192,7 +206,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
     S.found.forEach((f, i) => f.forEach((c, k) => P[c.id] = { x: colX(3 + i), y: 0, z: k + 1, up: true }));
     const avail = L.H - L.ty - L.h - 2;
     S.tab.forEach((col, i) => {
-      let dn = L.h * 0.11, up = L.h * 0.27, need = 0;
+      let dn = L.h * 0.10, up = L.h * 0.31, need = 0;
       for (let k = 0; k < col.length - 1; k++) need += col[k].up ? up : dn;
       if (need > avail && need > 0) { const f = avail / need; dn *= f; up *= f; }
       let y = L.ty;
@@ -269,9 +283,32 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
     const src = pile(loc.p, loc.i);
     const moved = src.splice(loc.k);
     pile(dst.p, dst.i).push(...moved);
-    if (loc.p === 'tab' && src.length && !src[src.length - 1].up) src[src.length - 1].up = true;
+    let flipped = null;
+    if (loc.p === 'tab' && src.length && !src[src.length - 1].up) {
+      src[src.length - 1].up = true;
+      flipped = { p: 'tab', i: loc.i, k: src.length - 1 };
+    }
     S.moves++; start();
     after();
+    if (flipped) autoFound(flipped);
+  }
+
+  // A card that has just been turned face up goes straight to its foundation when it can.
+  // It shares the undo step of the move that uncovered it.
+  function autoFound(loc) {
+    if (S.won) return;
+    const g = group(loc);
+    if (!g || g.length !== 1) return;
+    let dst = null;
+    for (let f = 0; f < 4; f++) if (legal(g, { p: 'found', i: f })) { dst = { p: 'found', i: f }; break; }
+    if (!dst) return;
+    busy = true;
+    setTimeout(() => {
+      busy = false;
+      const now = locate(g[0].id);
+      if (!now || now.p !== loc.p || now.k !== pile(now.p, now.i).length - 1 || !legal(g, dst)) return;
+      doMove(now, dst, false);
+    }, reduce() ? 0 : 240);
   }
 
   function draw() {
@@ -285,6 +322,10 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
       snap();
       const n = Math.min(S.draw, S.stock.length);
       for (let i = 0; i < n; i++) { const c = S.stock.pop(); c.up = true; S.waste.push(c); }
+      S.moves++; start();
+      after();
+      autoFound({ p: 'waste', i: 0, k: S.waste.length - 1 });
+      return;
     }
     S.moves++; start();
     after();
@@ -365,7 +406,12 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
     $('moves').textContent = S.moves;
     $('clock').textContent = fmt(S.elapsed);
     $('undoBtn').disabled = !hist.length || S.won;
-    $('finishBtn').hidden = !canFinish();
+    const fin = canFinish();
+    $('finishBtn').hidden = !fin;
+    $('hintBtn').hidden = fin;
+    $('hintBtn').disabled = S.won;
+    countEl.textContent = S.stock.length;
+    countEl.hidden = !S.stock.length || S.won;
     $('d1').setAttribute('aria-pressed', prefDraw === 1);
     $('d3').setAttribute('aria-pressed', prefDraw === 3);
   }
@@ -377,7 +423,63 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
     } catch (e) {}
     return false;
   }
-  function after() { save(); render(); updateUI(); checkWin(); }
+  function after() { clearHint(); save(); render(); updateUI(); checkWin(); }
+
+  // ---------- hints ----------
+  let hintT;
+  function clearHint() {
+    clearTimeout(hintT);
+    board.querySelectorAll('.hint').forEach(e => e.classList.remove('hint'));
+  }
+  function findHint() {
+    const sources = [];
+    if (S.waste.length) sources.push({ p: 'waste', i: 0, k: S.waste.length - 1 });
+    S.tab.forEach((col, i) => {
+      const first = col.findIndex(c => c.up);
+      if (first >= 0) sources.push({ p: 'tab', i, k: first });
+      if (col.length && first !== col.length - 1) sources.push({ p: 'tab', i, k: col.length - 1 });
+    });
+    // 1. anything onto a foundation
+    for (const loc of sources) {
+      const g = group(loc);
+      if (g.length !== 1) continue;
+      for (let f = 0; f < 4; f++) if (legal(g, { p: 'found', i: f })) return { loc, g, dst: { p: 'found', i: f } };
+    }
+    // 2. a whole run that uncovers a card or frees a column (not a king that already sits in an empty column)
+    for (const loc of sources) {
+      if (loc.p !== 'tab' || loc.k !== S.tab[loc.i].findIndex(c => c.up)) continue;
+      if (loc.k === 0 && S.tab[loc.i][0].r === 13) continue;
+      const g = group(loc);
+      for (let i = 0; i < 7; i++)
+        if (i !== loc.i && legal(g, { p: 'tab', i })) return { loc, g, dst: { p: 'tab', i } };
+    }
+    // 3. the waste card onto the table
+    if (S.waste.length) {
+      const loc = sources[0], g = group(loc);
+      for (let i = 0; i < 7; i++) if (legal(g, { p: 'tab', i })) return { loc, g, dst: { p: 'tab', i } };
+    }
+    return null;
+  }
+  function showHint() {
+    if (S.won || busy) return;
+    clearHint();
+    const h = findHint();
+    const mark = [];
+    if (h) {
+      h.g.forEach(c => mark.push(els[c.id]));
+      const dp = pile(h.dst.p, h.dst.i), top = dp[dp.length - 1];
+      mark.push(top ? els[top.id] : slots[(h.dst.p === 'found' ? 'found' : 'tab') + h.dst.i]);
+    } else if (S.stock.length || S.waste.length) {
+      const top = S.stock[S.stock.length - 1];
+      mark.push(top ? els[top.id] : slots.stock);
+      toast(S.stock.length ? 'Draw from the stock' : 'Turn the waste back over');
+    } else {
+      toast('No moves left. Try a new deal.');
+      return;
+    }
+    mark.forEach(e => e.classList.add('hint'));
+    hintT = setTimeout(clearHint, 2200);
+  }
 
   let toastT;
   function toast(msg) {
@@ -394,6 +496,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
     if (cardEl) {
       const loc = locate(drag.id), g = group(loc);
       if (g) { drag.loc = loc; drag.ids = g.map(c => c.id); drag.base = drag.ids.map(id => ({ x: lastP[id].x, y: lastP[id].y })); }
+      if (g || loc.p === 'stock') { drag.pressEl = cardEl; cardEl.classList.add('press'); }
     }
     try { board.setPointerCapture(e.pointerId); } catch (err) {}
   });
@@ -402,7 +505,8 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
     const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
     if (!drag.active) {
       if (Math.hypot(dx, dy) < 7) return;
-      drag.active = true; dragIds = new Set(drag.ids);
+      drag.active = true; dragIds = new Set(drag.ids); clearHint();
+      if (drag.pressEl) drag.pressEl.classList.remove('press');
       drag.ids.forEach((id, k) => { clearTimeout(els[id]._zt); els[id].classList.add('lift'); els[id].style.zIndex = 1000 + k; });
     }
     drag.ids.forEach((id, k) => {
@@ -414,6 +518,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   function endDrag(e, cancelled) {
     const d = drag; drag = null;
     if (!d) return;
+    if (d.pressEl) d.pressEl.classList.remove('press');
     if (d.active) {
       d.ids.forEach(id => els[id].classList.remove('lift'));
       dragIds = new Set();
@@ -449,15 +554,16 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   let armed = false, armT;
   $('newBtn').addEventListener('click', () => {
     if (S.moves > 0 && !S.won && !armed) {
-      armed = true; $('newBtn').textContent = 'Tap again to deal'; $('newBtn').classList.add('warn');
+      armed = true; $('newLabel').textContent = 'Tap to confirm'; $('newBtn').classList.add('warn');
       clearTimeout(armT);
-      armT = setTimeout(() => { armed = false; $('newBtn').textContent = 'New deal'; $('newBtn').classList.remove('warn'); }, 3000);
+      armT = setTimeout(() => { armed = false; $('newLabel').textContent = 'New deal'; $('newBtn').classList.remove('warn'); }, 3000);
       return;
     }
-    clearTimeout(armT); armed = false; $('newBtn').textContent = 'New deal'; $('newBtn').classList.remove('warn');
+    clearTimeout(armT); armed = false; $('newLabel').textContent = 'New deal'; $('newBtn').classList.remove('warn');
     newGame();
   });
   $('undoBtn').addEventListener('click', undo);
+  $('hintBtn').addEventListener('click', showHint);
   $('finishBtn').addEventListener('click', finish);
   $('againBtn').addEventListener('click', newGame);
   document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
