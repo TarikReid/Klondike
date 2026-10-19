@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>Baize Solitaire</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Baize">
+<meta name="theme-color" content="#1e5641">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-512.png">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px -apple-system,system-ui,sans-serif}[hidden]{display:none!important}</style>
+</head>
+<body>
+<style>
+/* Layout: one-screen card table. Stock, waste and four foundations on top, seven tableau columns below, stats above and controls below for thumb reach. System fonts only, so nothing is fetched. */
+:root{
+  --felt:#1e5641; --felt-deep:#153f30; --line:rgba(236,244,236,.16); --chip:rgba(6,24,17,.30); --chip-line:rgba(236,244,236,.14);
+  --card:#fbf8f0; --ink:#1c2420; --red:#b3302a; --back:#7c2331; --back-2:#952f3e;
+  --fg:#e8efe8; --muted:rgba(232,239,232,.66); --accent:#e3b54c; --accent-ink:#2b1f05;
+  --f-rank:"Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,serif;
+  --f-ui:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;
+  color-scheme:dark;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--felt:#123a2c;--felt-deep:#0c2a1f;--card:#ebe6da;--ink:#1a201d;--red:#a82d27;--back:#6a1d29;--back-2:#802736;--accent:#d9a83f;color-scheme:dark}}
+:root[data-theme="dark"]{--felt:#123a2c;--felt-deep:#0c2a1f;--card:#ebe6da;--ink:#1a201d;--red:#a82d27;--back:#6a1d29;--back-2:#802736;--accent:#d9a83f;color-scheme:dark}
+html{height:100%;box-sizing:border-box;background:var(--felt)}
+*,*::before,*::after{box-sizing:inherit}
+body{height:100%;margin:0;overflow:hidden;color:var(--fg);font-family:var(--f-ui);
+  background:radial-gradient(120% 80% at 50% 30%,var(--felt) 40%,var(--felt-deep) 100%);
+  -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;overscroll-behavior:none}
+#app{height:100%;display:flex;flex-direction:column}
+.bar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:8px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.stats{font-size:14px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.stats b{color:var(--fg);font-weight:600}
+.seg{display:flex;background:var(--chip);border:1px solid var(--chip-line);border-radius:999px;padding:3px}
+.seg button{font:600 13px var(--f-ui);color:var(--muted);background:none;border:0;border-radius:999px;height:30px;padding:0 12px;touch-action:manipulation;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--felt-deep)}
+#wrap{flex:1;min-height:0;display:flex;position:relative;padding-block:2px 6px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+#board{position:relative;flex:1;touch-action:none}
+.foot{justify-content:center;gap:10px;padding-block:6px 10px}
+.btn{font:600 15px var(--f-ui);color:var(--fg);background:var(--chip);border:1px solid var(--chip-line);border-radius:999px;height:42px;padding:0 18px;cursor:pointer;touch-action:manipulation;white-space:nowrap}
+.btn:disabled{opacity:.38;cursor:default}
+.btn.go{background:var(--accent);color:var(--accent-ink);border-color:transparent}
+.btn.warn{background:var(--fg);color:var(--felt-deep)}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.slot{position:absolute;left:0;top:0;width:var(--cw);height:var(--ch);border-radius:calc(var(--cw)*.09);border:1.5px solid var(--line);
+  display:grid;place-items:center;color:var(--line);font:500 calc(var(--cw)*.42)/1 var(--f-rank);z-index:0}
+.slot[data-p="stock"]{cursor:pointer}
+.card{position:absolute;left:0;top:0;width:var(--cw);height:var(--ch);transition:transform .2s cubic-bezier(.2,.7,.3,1);will-change:transform;cursor:pointer}
+#board.instant .card{transition:none}
+.card>.face,.card>.back{position:absolute;inset:0;border-radius:calc(var(--cw)*.09)}
+.face{display:none;background:var(--card);color:var(--ink);box-shadow:0 0 0 .5px rgba(0,0,0,.35),0 1px 2px rgba(0,0,0,.28)}
+.card.red .face{color:var(--red)}
+.card.up .face{display:block}
+.card.up .back{display:none}
+.back{background:repeating-linear-gradient(45deg,var(--back) 0 3px,var(--back-2) 3px 6px);border:calc(var(--cw)*.07) solid var(--card);box-shadow:0 0 0 .5px rgba(0,0,0,.35),0 1px 2px rgba(0,0,0,.28)}
+.idx{position:absolute;left:7%;right:8%;top:3%;display:flex;justify-content:space-between;align-items:baseline;line-height:1}
+.idx b{font:600 calc(var(--cw)*.33)/1 var(--f-rank);letter-spacing:-.05em}
+.idx i{font-style:normal;font-size:calc(var(--cw)*.27)}
+.pip{position:absolute;left:0;right:0;bottom:9%;text-align:center;line-height:1;font-size:calc(var(--cw)*.62)}
+.pip.court{font:italic 500 calc(var(--cw)*.6)/1 var(--f-rank)}
+.card.lift{transition:none}
+.card.lift .face{box-shadow:0 0 0 .5px rgba(0,0,0,.35),0 10px 22px rgba(0,0,0,.4)}
+.card.nope>*{animation:nope .28s ease}
+@keyframes nope{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+
+#toast{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);background:var(--card);color:var(--ink);font-size:14px;padding:9px 14px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.35);z-index:2000;max-width:calc(100% - 32px);text-align:center}
+#win{position:fixed;inset:0;display:grid;place-items:center;z-index:3000;background:rgba(5,20,14,.45);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.panel{background:var(--card);color:var(--ink);border-radius:16px;padding:24px 26px;width:min(340px,100%);display:grid;gap:10px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.45)}
+.panel h2{margin:0;font:italic 600 34px/1.1 var(--f-rank);text-wrap:balance}
+.panel p{margin:0;font-size:15px;line-height:1.45;font-variant-numeric:tabular-nums}
+.panel .btn{margin-top:6px;justify-self:center}
+@media (prefers-reduced-motion: reduce){.card{transition:none}.card.nope>*{animation:none}}
+</style>
+
+<div id="app">
+  <div class="bar">
+    <div class="stats" id="stats"><b id="moves">0</b> moves · <b id="clock">0:00</b></div>
+    <div class="seg" role="group" aria-label="Cards drawn from the stock">
+      <button id="d1" data-draw="1" aria-pressed="true">Draw 1</button>
+      <button id="d3" data-draw="3" aria-pressed="false">Draw 3</button>
+    </div>
+  </div>
+  <div id="wrap">
+    <div id="board" aria-label="Solitaire table"></div>
+    <div id="toast" hidden></div>
+  </div>
+  <div class="bar foot">
+    <button class="btn" id="newBtn">New deal</button>
+    <button class="btn" id="undoBtn" disabled>Undo</button>
+    <button class="btn go" id="finishBtn" hidden>Finish</button>
+  </div>
+</div>
+<div id="win" hidden>
+  <div class="panel" role="dialog" aria-labelledby="winTitle">
+    <h2 id="winTitle">Solved</h2>
+    <p id="winLine"></p>
+    <p id="winStats"></p>
+    <button class="btn go" id="againBtn">Deal again</button>
+  </div>
+</div>
+
+<script>
+(() => {
+  const SU = ['♠︎', '♥︎', '♦︎', '♣︎'];
+  const RK = ['', 'A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+  const NAMES = ['spades', 'hearts', 'diamonds', 'clubs'];
+  const isRed = s => s === 1 || s === 2;
+  const KEY = 'baize-solitaire-v1';
+  const $ = id => document.getElementById(id);
+  const board = $('board');
+  const reduce = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  let S = null, hist = [], prefDraw = 1, stats = { played: 0, won: 0 };
+  let L = {}, lastP = [], dragIds = new Set(), busy = false;
+
+  // Slots and cards are built once; rendering only moves them.
+  const slots = {};
+  const mkSlot = (key, label) => {
+    const d = document.createElement('div');
+    d.className = 'slot'; d.dataset.p = key; d.textContent = label;
+    board.appendChild(d); slots[key] = d;
+  };
+  mkSlot('stock', '↻'); mkSlot('waste', '');
+  for (let i = 0; i < 4; i++) mkSlot('found' + i, 'A');
+  for (let i = 0; i < 7; i++) mkSlot('tab' + i, 'K');
+
+  const els = [];
+  for (let id = 0; id < 52; id++) {
+    const s = Math.floor(id / 13), r = id % 13 + 1;
+    const d = document.createElement('div');
+    d.className = 'card' + (isRed(s) ? ' red' : '');
+    d.dataset.id = id;
+    d.setAttribute('aria-label', RK[r] + ' of ' + NAMES[s]);
+    d.innerHTML = `<div class="face"><span class="idx"><b>${RK[r]}</b><i>${SU[s]}</i></span>` +
+      `<span class="pip${r > 10 ? ' court' : ''}">${r > 10 ? RK[r] : SU[s]}</span></div><div class="back"></div>`;
+    board.appendChild(d); els.push(d);
+  }
+
+  function rnd(n) {
+    try { const a = new Uint32Array(1); crypto.getRandomValues(a); return a[0] % n; }
+    catch (e) { return Math.floor(Math.random() * n); }
+  }
+
+  function newGame() {
+    const d = [];
+    for (let id = 0; id < 52; id++) d.push({ id, s: Math.floor(id / 13), r: id % 13 + 1, up: false });
+    for (let i = 51; i > 0; i--) { const j = rnd(i + 1); [d[i], d[j]] = [d[j], d[i]]; }
+    const tab = [[], [], [], [], [], [], []];
+    for (let row = 0; row < 7; row++)
+      for (let col = row; col < 7; col++) { const c = d.pop(); c.up = col === row; tab[col].push(c); }
+    S = { stock: d, waste: [], found: [[], [], [], []], tab, draw: prefDraw, moves: 0, elapsed: 0, started: false, won: false };
+    hist = []; busy = false;
+    stats.played++;
+    $('win').hidden = true;
+    after();
+  }
+
+  // ---------- layout ----------
+  const colX = i => L.ox + i * (L.w + L.gap);
+  function layout() {
+    const W = board.clientWidth, H = board.clientHeight;
+    const gap = Math.round(Math.max(4, Math.min(12, W * 0.013)));
+    let w = Math.floor(Math.min((W - 6 * gap) / 7, 112, H / (1.4 * 3.3)));
+    w = Math.max(w, 24);
+    const h = Math.round(w * 1.4);
+    L = { W, H, w, h, gap, ox: Math.round((W - (7 * w + 6 * gap)) / 2) };
+    L.ty = h + Math.round(Math.max(10, h * 0.16));
+    board.style.setProperty('--cw', w + 'px');
+    board.style.setProperty('--ch', h + 'px');
+    const place = (key, x, y) => { slots[key].style.transform = `translate(${x}px,${y}px)`; };
+    place('stock', colX(0), 0); place('waste', colX(1), 0);
+    for (let i = 0; i < 4; i++) place('found' + i, colX(3 + i), 0);
+    for (let i = 0; i < 7; i++) place('tab' + i, colX(i), L.ty);
+  }
+
+  function positions() {
+    const P = [];
+    S.stock.forEach((c, k) => P[c.id] = { x: colX(0), y: 0, z: k + 1, up: c.up });
+    const fan = S.draw === 3 ? 3 : 1, wn = S.waste.length, vis = Math.min(fan, wn);
+    S.waste.forEach((c, k) => {
+      const pos = Math.max(0, k - (wn - vis));
+      P[c.id] = { x: colX(1) + pos * Math.round(L.w * 0.26), y: 0, z: k + 1, up: true };
+    });
+    S.found.forEach((f, i) => f.forEach((c, k) => P[c.id] = { x: colX(3 + i), y: 0, z: k + 1, up: true }));
+    const avail = L.H - L.ty - L.h - 2;
+    S.tab.forEach((col, i) => {
+      let dn = L.h * 0.11, up = L.h * 0.27, need = 0;
+      for (let k = 0; k < col.length - 1; k++) need += col[k].up ? up : dn;
+      if (need > avail && need > 0) { const f = avail / need; dn *= f; up *= f; }
+      let y = L.ty;
+      col.forEach((c, k) => { P[c.id] = { x: colX(i), y: Math.round(y), z: k + 1, up: c.up }; y += c.up ? up : dn; });
+    });
+    return P;
+  }
+
+  function render(instant) {
+    const P = positions();
+    lastP = P;
+    if (instant) board.classList.add('instant');
+    for (let id = 0; id < 52; id++) {
+      const el = els[id], p = P[id];
+      el.classList.toggle('up', p.up);
+      if (dragIds.has(id)) continue;
+      clearTimeout(el._zt);
+      const t = `translate(${p.x}px,${p.y}px)`;
+      if (el._t !== t && !instant && el._t) {
+        el.style.zIndex = 600 + p.z;
+        el._zt = setTimeout(() => { el.style.zIndex = p.z; }, 240);
+      } else el.style.zIndex = p.z;
+      el.style.transform = t; el._t = t;
+    }
+    if (instant) requestAnimationFrame(() => requestAnimationFrame(() => board.classList.remove('instant')));
+  }
+
+  // ---------- rules ----------
+  const pile = (p, i) => p === 'stock' ? S.stock : p === 'waste' ? S.waste : p === 'found' ? S.found[i] : S.tab[i];
+  function locate(id) {
+    let k;
+    if ((k = S.stock.findIndex(c => c.id === id)) >= 0) return { p: 'stock', i: 0, k };
+    if ((k = S.waste.findIndex(c => c.id === id)) >= 0) return { p: 'waste', i: 0, k };
+    for (let i = 0; i < 4; i++) if ((k = S.found[i].findIndex(c => c.id === id)) >= 0) return { p: 'found', i, k };
+    for (let i = 0; i < 7; i++) if ((k = S.tab[i].findIndex(c => c.id === id)) >= 0) return { p: 'tab', i, k };
+    return null;
+  }
+  function group(loc) {
+    if (!loc || loc.p === 'stock') return null;
+    const arr = pile(loc.p, loc.i);
+    if (loc.p !== 'tab' && loc.k !== arr.length - 1) return null;
+    if (!arr[loc.k].up) return null;
+    return arr.slice(loc.k);
+  }
+  function legal(cards, dst) {
+    const c = cards[0];
+    if (dst.p === 'found') {
+      if (cards.length !== 1) return false;
+      const f = S.found[dst.i], top = f[f.length - 1];
+      return top ? top.s === c.s && c.r === top.r + 1 : c.r === 1;
+    }
+    const t = S.tab[dst.i], top = t[t.length - 1];
+    if (!top) return c.r === 13;
+    return top.up && isRed(top.s) !== isRed(c.s) && c.r === top.r - 1;
+  }
+  function bestTarget(loc, g) {
+    if (g.length === 1 && loc.p !== 'found')
+      for (let i = 0; i < 4; i++) if (legal(g, { p: 'found', i })) return { p: 'found', i };
+    let empty = null;
+    for (let i = 0; i < 7; i++) {
+      if (loc.p === 'tab' && i === loc.i) continue;
+      if (!legal(g, { p: 'tab', i })) continue;
+      if (S.tab[i].length) return { p: 'tab', i };
+      if (empty === null && !(loc.p === 'tab' && loc.k === 0)) empty = { p: 'tab', i };
+    }
+    return empty;
+  }
+
+  function snap() { hist.push(JSON.stringify(S)); if (hist.length > 400) hist.shift(); }
+  function start() { S.started = true; }
+
+  function doMove(loc, dst, record = true) {
+    if (record) snap();
+    const src = pile(loc.p, loc.i);
+    const moved = src.splice(loc.k);
+    pile(dst.p, dst.i).push(...moved);
+    if (loc.p === 'tab' && src.length && !src[src.length - 1].up) src[src.length - 1].up = true;
+    S.moves++; start();
+    after();
+  }
+
+  function draw() {
+    if (S.won || busy) return;
+    if (!S.stock.length) {
+      if (!S.waste.length) return;
+      snap();
+      S.stock = S.waste.reverse().map(c => (c.up = false, c));
+      S.waste = [];
+    } else {
+      snap();
+      const n = Math.min(S.draw, S.stock.length);
+      for (let i = 0; i < n; i++) { const c = S.stock.pop(); c.up = true; S.waste.push(c); }
+    }
+    S.moves++; start();
+    after();
+  }
+
+  function nudge(id) {
+    const el = els[id]; el.classList.remove('nope'); void el.offsetWidth; el.classList.add('nope');
+    setTimeout(() => el.classList.remove('nope'), 300);
+  }
+
+  function tapCard(id) {
+    if (S.won || busy) return;
+    const loc = locate(id);
+    if (loc.p === 'stock') { draw(); return; }
+    const g = group(loc);
+    if (!g) return;
+    const dst = bestTarget(loc, g);
+    if (dst) doMove(loc, dst); else nudge(id);
+  }
+
+  const canFinish = () => !S.won && !S.stock.length && !S.waste.length &&
+    S.tab.every(col => col.every(c => c.up)) && S.tab.some(col => col.length);
+
+  function finish() {
+    if (!canFinish() || busy) return;
+    busy = true; snap();
+    const step = () => {
+      let best = null;
+      S.tab.forEach((col, i) => {
+        const c = col[col.length - 1];
+        if (!c) return;
+        for (let f = 0; f < 4; f++)
+          if (legal([c], { p: 'found', i: f }) && (!best || c.r < best.c.r))
+            best = { c, loc: { p: 'tab', i, k: col.length - 1 }, dst: { p: 'found', i: f } };
+      });
+      if (!best) { busy = false; return; }
+      doMove(best.loc, best.dst, false);
+      if (S.won) { busy = false; return; }
+      setTimeout(step, reduce() ? 0 : 80);
+    };
+    step();
+  }
+
+  function undo() {
+    if (!hist.length || busy || S.won) return;
+    const t = S.elapsed;
+    S = JSON.parse(hist.pop()); S.elapsed = t;
+    after();
+  }
+
+  function checkWin() {
+    if (S.won || !S.found.every(f => f.length === 13)) return;
+    S.won = true; stats.won++; save();
+    celebrate();
+    const mm = fmt(S.elapsed);
+    $('winLine').textContent = `Draw ${S.draw} · ${mm} · ${S.moves} moves`;
+    $('winStats').textContent = `You have won ${stats.won} of ${stats.played} deals.`;
+    setTimeout(() => { $('win').hidden = false; $('againBtn').focus(); }, reduce() ? 0 : 1100);
+  }
+
+  function celebrate() {
+    if (reduce()) return;
+    const m = Math.min(L.W, L.H);
+    els.forEach((el, k) => {
+      const a = (k / 52) * Math.PI * 6, rad = m * 0.08 + k * m * 0.0072;
+      const x = L.W / 2 - L.w / 2 + Math.cos(a) * rad, y = L.H / 2 - L.h / 2 + Math.sin(a) * rad * 0.85;
+      const t = `translate(${Math.round(x)}px,${Math.round(y)}px) rotate(${Math.round(a * 57.3 + 90) % 360}deg)`;
+      clearTimeout(el._zt);
+      el.style.transition = `transform .7s cubic-bezier(.2,.7,.3,1) ${k * 14}ms`;
+      el.style.zIndex = 100 + k; el.style.transform = t; el._t = t;
+    });
+    setTimeout(() => els.forEach(el => el.style.transition = ''), 52 * 14 + 800);
+  }
+
+  // ---------- UI state ----------
+  const fmt = s => Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+  function updateUI() {
+    $('moves').textContent = S.moves;
+    $('clock').textContent = fmt(S.elapsed);
+    $('undoBtn').disabled = !hist.length || S.won;
+    $('finishBtn').hidden = !canFinish();
+    $('d1').setAttribute('aria-pressed', prefDraw === 1);
+    $('d3').setAttribute('aria-pressed', prefDraw === 3);
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify({ S, prefDraw, stats })); } catch (e) {} }
+  function load() {
+    try {
+      const o = JSON.parse(localStorage.getItem(KEY));
+      if (o && o.S && Array.isArray(o.S.tab)) { S = o.S; prefDraw = o.prefDraw || 1; stats = o.stats || stats; return true; }
+    } catch (e) {}
+    return false;
+  }
+  function after() { save(); render(); updateUI(); checkWin(); }
+
+  let toastT;
+  function toast(msg) {
+    const t = $('toast'); t.textContent = msg; t.hidden = false;
+    clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2600);
+  }
+
+  // ---------- input ----------
+  let drag = null;
+  board.addEventListener('pointerdown', e => {
+    if (e.button > 0 || busy || (S && S.won)) return;
+    const cardEl = e.target.closest('.card'), slotEl = e.target.closest('.slot');
+    drag = { sx: e.clientX, sy: e.clientY, id: cardEl ? +cardEl.dataset.id : null, slot: slotEl ? slotEl.dataset.p : null, active: false };
+    if (cardEl) {
+      const loc = locate(drag.id), g = group(loc);
+      if (g) { drag.loc = loc; drag.ids = g.map(c => c.id); drag.base = drag.ids.map(id => ({ x: lastP[id].x, y: lastP[id].y })); }
+    }
+    try { board.setPointerCapture(e.pointerId); } catch (err) {}
+  });
+  board.addEventListener('pointermove', e => {
+    if (!drag || !drag.ids) return;
+    const dx = e.clientX - drag.sx, dy = e.clientY - drag.sy;
+    if (!drag.active) {
+      if (Math.hypot(dx, dy) < 7) return;
+      drag.active = true; dragIds = new Set(drag.ids);
+      drag.ids.forEach((id, k) => { clearTimeout(els[id]._zt); els[id].classList.add('lift'); els[id].style.zIndex = 1000 + k; });
+    }
+    drag.ids.forEach((id, k) => {
+      const b = drag.base[k];
+      els[id].style.transform = `translate(${b.x + dx}px,${b.y + dy}px)`; els[id]._t = null;
+    });
+    drag.dx = dx; drag.dy = dy;
+  });
+  function endDrag(e, cancelled) {
+    const d = drag; drag = null;
+    if (!d) return;
+    if (d.active) {
+      d.ids.forEach(id => els[id].classList.remove('lift'));
+      dragIds = new Set();
+      const dst = cancelled ? null : dropTarget(d);
+      if (dst) doMove(d.loc, dst); else render();
+    } else if (!cancelled) {
+      if (d.id !== null) tapCard(d.id);
+      else if (d.slot === 'stock') draw();
+    }
+  }
+  board.addEventListener('pointerup', e => endDrag(e, false));
+  board.addEventListener('pointercancel', e => endDrag(e, true));
+
+  function dropTarget(d) {
+    const g = d.ids.map(id => pile(d.loc.p, d.loc.i).find(c => c.id === id));
+    const a = { x: d.base[0].x + d.dx, y: d.base[0].y + d.dy, w: L.w, h: L.h };
+    const overlap = r => Math.max(0, Math.min(a.x + a.w, r.x + r.w) - Math.max(a.x, r.x)) *
+                         Math.max(0, Math.min(a.y + a.h, r.y + r.h) - Math.max(a.y, r.y));
+    const cands = [];
+    if (g.length === 1 && d.loc.p !== 'found')
+      for (let i = 0; i < 4; i++) cands.push({ dst: { p: 'found', i }, r: { x: colX(3 + i), y: 0, w: L.w, h: L.h } });
+    for (let i = 0; i < 7; i++) {
+      if (d.loc.p === 'tab' && d.loc.i === i) continue;
+      const col = S.tab[i], last = col[col.length - 1];
+      const bottom = last ? lastP[last.id].y + L.h : L.ty + L.h;
+      cands.push({ dst: { p: 'tab', i }, r: { x: colX(i), y: L.ty, w: L.w, h: Math.max(bottom, L.ty + L.h) - L.ty + L.h * 0.5 } });
+    }
+    let best = null, score = 0;
+    cands.forEach(c => { const o = overlap(c.r); if (o > score && legal(g, c.dst)) { best = c.dst; score = o; } });
+    return best;
+  }
+
+  let armed = false, armT;
+  $('newBtn').addEventListener('click', () => {
+    if (S.moves > 0 && !S.won && !armed) {
+      armed = true; $('newBtn').textContent = 'Tap again to deal'; $('newBtn').classList.add('warn');
+      clearTimeout(armT);
+      armT = setTimeout(() => { armed = false; $('newBtn').textContent = 'New deal'; $('newBtn').classList.remove('warn'); }, 3000);
+      return;
+    }
+    clearTimeout(armT); armed = false; $('newBtn').textContent = 'New deal'; $('newBtn').classList.remove('warn');
+    newGame();
+  });
+  $('undoBtn').addEventListener('click', undo);
+  $('finishBtn').addEventListener('click', finish);
+  $('againBtn').addEventListener('click', newGame);
+  document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => {
+    const v = +b.dataset.draw;
+    if (v === prefDraw) return;
+    prefDraw = v;
+    if (S.moves === 0 && !S.won) { S.draw = v; after(); }
+    else { updateUI(); save(); toast(`Draw ${v} starts with your next deal`); }
+  }));
+  document.addEventListener('keydown', e => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); undo(); }
+    else if (e.key === ' ' && e.target === document.body) { e.preventDefault(); draw(); }
+  });
+
+  setInterval(() => {
+    if (S && S.started && !S.won && !document.hidden) {
+      S.elapsed++; $('clock').textContent = fmt(S.elapsed);
+      if (S.elapsed % 5 === 0) save();
+    }
+  }, 1000);
+  document.addEventListener('visibilitychange', () => { if (S) save(); });
+
+  const relayout = () => { layout(); if (S) render(true); };
+  if (window.ResizeObserver) new ResizeObserver(relayout).observe(board);
+  else window.addEventListener('resize', relayout);
+
+  layout();
+  if (load()) { render(true); updateUI(); if (S.won) checkWinShown(); }
+  else newGame();
+
+  function checkWinShown() { $('winLine').textContent = `Draw ${S.draw} · ${fmt(S.elapsed)} · ${S.moves} moves`;
+    $('winStats').textContent = `You have won ${stats.won} of ${stats.played} deals.`; $('win').hidden = false; }
+})();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+}
+</script>
+</body>
+</html>
